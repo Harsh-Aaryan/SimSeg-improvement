@@ -1,0 +1,136 @@
+runner:
+  name: clip
+  val_interval: 1 
+  val_interval_steps: 100
+  stable_random: step
+
+epoch: 20
+
+dist:
+  name: torch
+  fp16: True # for torch dist 
+
+  param:
+    opt_level: O1 # for apex dist 
+
+log:
+  interval_train: 10
+  interval_val: 1
+
+wandb:
+  enable: False
+  project: project_name
+  entity: entity_name
+
+ckpt:
+  dir: ./output
+  step_interval: 2000
+  filename: step_checkpoint.pth
+
+# Optimizing configurations
+optim:
+  name: torch.optim.AdamW
+  param: 
+    betas: !!python/tuple [0.9, 0.98]
+    eps: 1.0e-6
+    weight_decay: 0.001
+  lr:
+    name: cosine_schedule_with_warmup_min_lr_scale
+    init: 3.0e-5  # Even lower LR for huge model
+    warmup_proportion: 0.03
+    param:
+      num_cycles: 0.5
+      min_lr_scale: 0.1
+
+# Mixed Precision Training (from ins.json)
+mixed_precision:
+  enabled: True
+  dtype: float16  # FP16 for forward/backward
+  loss_scale: dynamic  # FP32 loss scaling
+
+# Flash Attention (from ins.json)
+flash_attention:
+  enabled: True
+  # O(n^2) -> O(n) complexity, 20-30% speed increase
+
+# ----- DATASET BUILDER -----
+data:
+  exp_name: simseg_vit_h_eval
+  name: seg
+  train_type: shuffle # [sequential, shuffle, debias]
+  train_steps: -1
+
+  train_name: [cc3m, cc12m]
+  valid_name: [pascal_voc] # [pascal_voc, pascal_context, coco_stuff]
+
+  data_path: ./data/
+
+  batch_size: 256  # Further reduced for huge model
+  batch_size_val: 1
+
+  num_workers: 2
+  enable_valid: True
+  single_eval: False
+  cuda_eval: True
+
+# ----- TRAMSFORM BUILDER -----
+transforms:
+  train_transforms:  [random_resize_crop, autoaug]
+  valid_transforms: [resize]
+
+  resize:
+    size: 288
+  center_crop:
+    size: 224
+  random_resize_crop:
+    size: 224
+    scale: [0.6, 1.0]
+  input_size: 288 # declare for vit
+
+# ----- MODEL BUILDER -----
+model:
+  name: clip
+  max_length: 25
+
+  image_encoder:
+    name: vit_huge
+    tag: vit_huge_patch14_224_in21k  # ViT-H: 32 layers, 1280 hidden dim
+    embedding_dim: 1280  # ViT-H hidden dimension
+    pretrained: True
+    trainable: True
+    flash_attention: True  # Enable Flash Attention
+
+  text_encoder:
+    name: huggingface_modelzoo
+    tag: bert-base-uncased
+    embedding_dim: 768
+    pretrained: True
+    trainable: True
+    target_token_idx: 0
+
+  projection:
+    name: simple # complex
+    dim: 512
+    image_projector_trainable: True
+    text_projector_trainable: True
+
+  pool:
+    name: loda
+    loda:
+      image_k: 5  # Adapted for larger feature dimensions
+      text_k: 1
+
+  syncbn: True
+  interpolate_pos_embed: True  # Enable for different input sizes
+  freeze_cnn_bn: False
+
+# ----- LOSS BUILDER -----
+loss:
+  name: NCE
+  global_reduce: True
+  nce_loss:
+    gather_backward: True
+  temperature:
+    name: parameter
+    value: 0.02
+
