@@ -77,3 +77,5 @@ coco_stuff164k/
 
 # wandb log file
 wandb/
+run_distributed_train.sh
+run_distributed_train.ps1
