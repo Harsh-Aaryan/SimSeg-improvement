@@ -222,7 +222,8 @@ def main():
         raise NotImplementedError
 
     # Runner: building and running
-    checkpoint = torch.load(args.ckpt_path, map_location="cpu")
+    #checkpoint = torch.load(args.ckpt_path, map_location="cpu")
+    checkpoint = torch.load(args.ckpt_path, map_location="cpu", weights_only=False)
     model_checkpoint = checkpoint['state_dict'] 
 
     if 'image_encoder.model.model.pos_embed' in checkpoint['state_dict']:
