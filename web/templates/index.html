@@ -51,6 +51,7 @@
             font-size: 2.5rem;
             background: linear-gradient(135deg, var(--accent), #00ccff);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
         }
@@ -233,6 +234,48 @@
             text-align: right;
         }
 
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric-item:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .metric-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .compare-section .metric-value {
+            color: var(--text-secondary);
+        }
+
+        .compare-section.improved .metric-value {
+            color: var(--accent);
+        }
+
+        .improvement-badge {
+            display: inline-block;
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'Space Mono', monospace;
+            margin-left: 0.5rem;
+        }
+
         .compare-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -413,15 +456,25 @@
                             <img id="compare-original">
                         </div>
                         <div class="scores-card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 0.5rem;">Performance Metrics</h3>
+                            <div id="metrics-original"></div>
+                        </div>
+                        <div class="scores-card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 0.5rem;">Category Scores</h3>
                             <div id="scores-original"></div>
                         </div>
                     </div>
                     <div class="compare-section improved">
-                        <h3>Improved Model (ViT-L/H)</h3>
+                        <h3>Improved Model (ViT-L/H) </h3>
                         <div class="image-card">
                             <img id="compare-improved">
                         </div>
                         <div class="scores-card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 0.5rem;">Performance Metrics</h3>
+                            <div id="metrics-improved"></div>
+                        </div>
+                        <div class="scores-card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 0.5rem;">Category Scores</h3>
                             <div id="scores-improved"></div>
                         </div>
                     </div>
@@ -532,6 +585,11 @@
 
                 renderScores(data.original_scores, 'scores-original');
                 renderScores(data.improved_scores, 'scores-improved');
+                
+                if (data.original_metrics && data.improved_metrics) {
+                    renderMetrics(data.original_metrics, 'metrics-original');
+                    renderMetrics(data.improved_metrics, 'metrics-improved', data.original_metrics);
+                }
 
                 document.getElementById('compare-results').classList.add('show');
             } catch (err) {
@@ -551,6 +609,41 @@
                             <div class="score-fill" style="width: ${score}%"></div>
                         </div>
                         <span class="score-value">${score}%</span>
+                    </div>
+                `;
+            }
+        }
+
+        function renderMetrics(metrics, containerId, originalMetrics = null) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            for (const [metric, value] of Object.entries(metrics)) {
+                let displayValue = value;
+                let improvement = '';
+                
+                // Format based on metric type
+                if (metric === 'mIoU' || metric === 'Accuracy' || metric === 'F1 Score') {
+                    displayValue = (value * 100).toFixed(1) + '%';
+                } else if (metric === 'Pixel Accuracy') {
+                    displayValue = value + '%';
+                } else {
+                    displayValue = value;
+                }
+                
+                // Calculate improvement if original metrics provided
+                if (originalMetrics && originalMetrics[metric] !== undefined) {
+                    const origVal = typeof originalMetrics[metric] === 'number' ? originalMetrics[metric] : parseFloat(originalMetrics[metric]);
+                    const newVal = typeof value === 'number' ? value : parseFloat(value);
+                    const improvementPercent = ((newVal - origVal) / origVal * 100).toFixed(1);
+                    if (improvementPercent > 0) {
+                        improvement = `<span class="improvement-badge">+${improvementPercent}%</span>`;
+                    }
+                }
+                
+                container.innerHTML += `
+                    <div class="metric-item">
+                        <span class="metric-label">${metric}</span>
+                        <span class="metric-value">${displayValue}${improvement}</span>
                     </div>
                 `;
             }

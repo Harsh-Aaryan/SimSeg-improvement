@@ -79,3 +79,4 @@ coco_stuff164k/
 wandb/
 run_distributed_train.sh
 run_distributed_train.ps1
+SimSeg_Research_Paper.md
