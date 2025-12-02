@@ -50,7 +50,7 @@ data:
   train_steps: -1
 
   train_name: [cc3m, cc12m]
-  valid_name: [pascal_voc] # [pascal_voc, pascal_context, coco_stuff]
+  valid_name: [coco_stuff] # [pascal_voc, pascal_context, coco_stuff]
 
   data_path: ./data/
 
