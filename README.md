@@ -112,6 +112,15 @@ SimSeg
 │   │   │   ├── val2017
 ```
 
+## Adding Project To Terminal Path
+
+Since simseg isn't a native package, we temporarly add it as such by running the following.
+
+```shell
+export HOSTNAME=$(hostname)
+export PYTHONPATH=$(pwd):$PYTHONPATH
+```
+
 ## COCO Stuff
 
 To launch the model with the coco dataset, run the following.

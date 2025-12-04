@@ -1,6 +1,6 @@
 mmcv
 addict
-numpy
+numpy==1.26.4
 openmim
 pandas
 Pillow
