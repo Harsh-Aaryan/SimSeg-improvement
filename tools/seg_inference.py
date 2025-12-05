@@ -26,6 +26,7 @@ from simseg.utils.interpolate_pe import interpolate_pos_embed
 from simseg.core.hooks.checkpoint import get_dist_state_dict
 from simseg.tasks.clip.config import task_cfg_init_fn, update_clip_config
 
+# converts a class-index mask into a colored visualization
 def create_color_mask(mask, num_classes):
     # Deterministic palette: reproducible random colors per class
     np.random.seed(0)
@@ -37,6 +38,7 @@ def create_color_mask(mask, num_classes):
         color_mask[mask == cls_id] = palette[cls_id]
     return color_mask
 
+# refines segmentation masks using Conditional Random Fields
 def dense_crf(img, probs, n_labels=2):
     h, w = probs.shape
     probs = np.expand_dims(probs, 0)
@@ -54,7 +56,7 @@ def dense_crf(img, probs, n_labels=2):
     Q = d.inference(3)
     return np.argmax(np.array(Q), axis=0).reshape((h, w))
 
-
+# builds text embeddings for class names using CLIP-style zero-shot classification
 def zero_shot_classifier(model, classnames, make_template, tokenizer, ENV):
     with torch.no_grad():
         zeroshot_weights = []
@@ -73,7 +75,11 @@ def zero_shot_classifier(model, classnames, make_template, tokenizer, ENV):
         zeroshot_weights = torch.stack(zeroshot_weights, dim=1).cuda()
     return zeroshot_weights.transpose(0, 1)
 
-
+# core loop of the whole program
+# 1. loads image
+# 2. apply preprocessing transformations
+# 3. convert to tensor and move to GPU
+# 4. compute image
 def run_single_image(image_path, model, cfg, tokenizer, seg_categories, top_cls_num, output_path):
     raw_img = Image.open(image_path).convert("RGB")
 
@@ -149,7 +155,7 @@ def run_single_image(image_path, model, cfg, tokenizer, seg_categories, top_cls_
     overlay = cv2.addWeighted(np.array(raw_img), 0.6, color_mask, 0.4, 0)
     cv2.imwrite(output_path.replace(".png", "_overlay.png"), overlay)
 
-
+# parses command-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description='SimSeg Single Image Inference')
     parser.add_argument('--cfg', type=str, required=True, help='experiment config file')
